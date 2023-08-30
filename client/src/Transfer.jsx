@@ -14,10 +14,15 @@ function Transfer({ address, setBalance }) {
     evt.preventDefault();
 
     try {
+      const {
+        data: { transactionId },
+      } = await server.get(`transactionId`);
+
       const data = {
         sender: address,
         amount: parseInt(sendAmount),
         recipient,
+        transactionId
       };
       const hexData = toHex(utf8ToBytes(JSON.stringify(data)));
       const sign = secp256k1.sign(hexData, privateKey);

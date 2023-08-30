@@ -16,6 +16,8 @@ const balances = {
   "4bef5cbdf1f4bd716038832ce54f1ee0324f669d": 75,
 };
 
+let nextTransactionId = 0;
+
 app.get("/balance/:address", (req, res) => {
   const { address } = req.params;
   const balance = balances[address] || 0;
@@ -25,7 +27,12 @@ app.get("/balance/:address", (req, res) => {
 app.post("/send", (req, res) => {
   const { hexData, sign, recovery} = req.body;
 
-  const {sender, amount, recipient} = JSON.parse(bytesToUtf8(hexToBytes(hexData)));
+  const {sender, amount, recipient, transactionId} = JSON.parse(bytesToUtf8(hexToBytes(hexData)));
+
+  if (transactionId !== nextTransactionId) {
+    res.status(400).send({message: "wrong transaction id"});
+    return;
+  }
 
   const signatureType = secp256k1.Signature.fromCompact(sign);
   signatureType.recovery = recovery;
@@ -44,10 +51,15 @@ app.post("/send", (req, res) => {
   if (balances[sender] < amount) {
     res.status(400).send({ message: "Not enough funds!" });
   } else {
+    nextTransactionId++;
     balances[sender] -= amount;
     balances[recipient] += amount;
     res.send({ balance: balances[sender] });
   }
+});
+
+app.get("/transactionId", (req, res) => {
+  res.send({ transactionId: nextTransactionId });
 });
 
 app.listen(port, () => {
